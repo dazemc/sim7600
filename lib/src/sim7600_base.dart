@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:libserialport/libserialport.dart';
 import 'dart:convert';
 import 'dart:typed_data';
@@ -23,12 +26,17 @@ class SimSerial {
     port.flush();
   }
 
-  Uint8List _convertMsg(String msg) {
+  Uint8List _encodeMsg(String msg) {
     return Uint8List.fromList(utf8.encode('$msg\r\n'));
   }
 
   void writeMessage(String msg) {
-    port.write(_convertMsg(msg));
+    if (!port.isOpen) {
+      throw SerialPortError(
+        'Could not send message: $msg\nPort is not open ${SerialPort.lastError}',
+      );
+    }
+    port.write(_encodeMsg(msg));
   }
 }
 
@@ -42,10 +50,23 @@ class SimReader {
   }
 
   SimReader._internal(this.reader);
+  String _decodeMsg(Uint8List data) {
+    return utf8.decode(data, allowMalformed: true);
+  }
 
   void listen() {
     reader.stream.listen((data) {
-      print(utf8.decode(data, allowMalformed: true));
+      print(_decodeMsg(data));
+    });
+  }
+
+  void read() {
+    reader.stream.listen((data) {
+      final String msg = _decodeMsg(data).trim();
+      print(msg);
+      if (msg.contains('OK')) {
+        reader.close();
+      }
     });
   }
 }

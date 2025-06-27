@@ -1,8 +1,6 @@
 import 'package:libserialport/libserialport.dart';
 import 'package:sim7600/sim7600.dart';
 import 'dart:io';
-import 'dart:convert';
-import 'dart:typed_data';
 
 void main() {
   // Writer
@@ -17,5 +15,5 @@ void main() {
   serial.writeMessage('AT&V');
   // Reader
   final simReader = SimReader();
-  simReader.listen();
+  simReader.read();
 }
