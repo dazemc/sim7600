@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 void main() {
+  // Writer
   final serial = SimSerial();
   final port = serial.port;
   if (!port.isOpen) {
@@ -13,10 +14,8 @@ void main() {
       exit(-1);
     }
   }
-  Uint8List at = Uint8List.fromList(utf8.encode('AT\r\n'));
-  port.write(at);
+  serial.writeMessage('AT&V');
+  // Reader
   final simReader = SimReader();
-  simReader.reader.stream.listen((data) {
-    print(utf8.decode(data));
-  });
+  simReader.listen();
 }
