@@ -37,7 +37,6 @@ class SimSerial {
         'Could not send message: $msg\nPort is not open ${SerialPort.lastError}',
       );
     }
-    port.flush();
     port.write(_encodeMsg(msg));
   }
 }
