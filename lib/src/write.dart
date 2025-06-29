@@ -1,13 +1,13 @@
-import 'dart:async';
-import 'dart:io';
-
 import 'package:libserialport/libserialport.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:sim7600/src/comm_imports.dart';
+
 const String comName = '/dev/ttyUSB2';
 
 class SimSerial {
+  /// Class for setting up port and sending serial communication
   static final SimSerial _instance = SimSerial._internal();
   final SerialPort port;
 
@@ -31,42 +31,13 @@ class SimSerial {
   }
 
   void writeMessage(String msg) {
+    /// Sends serial communication command
     if (!port.isOpen) {
       throw SerialPortError(
         'Could not send message: $msg\nPort is not open ${SerialPort.lastError}',
       );
     }
+    port.flush();
     port.write(_encodeMsg(msg));
-  }
-}
-
-class SimReader {
-  final SerialPortReader reader;
-
-  factory SimReader() {
-    final simSerial = SimSerial();
-    final reader = SerialPortReader(simSerial.port);
-    return SimReader._internal(reader);
-  }
-
-  SimReader._internal(this.reader);
-  String _decodeMsg(Uint8List data) {
-    return utf8.decode(data, allowMalformed: true);
-  }
-
-  void listen() {
-    reader.stream.listen((data) {
-      print(_decodeMsg(data));
-    });
-  }
-
-  void read() {
-    reader.stream.listen((data) {
-      final String msg = _decodeMsg(data).trim();
-      print(msg);
-      if (msg.contains('OK')) {
-        reader.close();
-      }
-    });
   }
 }

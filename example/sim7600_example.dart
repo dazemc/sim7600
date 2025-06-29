@@ -2,7 +2,7 @@ import 'package:libserialport/libserialport.dart';
 import 'package:sim7600/sim7600.dart';
 import 'dart:io';
 
-void main() {
+void main() async {
   // Writer
   final serial = SimSerial();
   final port = serial.port;
@@ -12,8 +12,11 @@ void main() {
       exit(-1);
     }
   }
-  serial.writeMessage('AT&V');
+  // serial.writeMessage('AT&V');
   // Reader
-  final simReader = SimReader();
-  simReader.read();
+  // final simReader = SimReader();
+  // print(await simReader.read(signal: 'OK'));
+  // Configuration
+  final simConfig = SimConfiguration();
+  print(await simConfig.rawConfig);
 }
