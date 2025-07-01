@@ -1,9 +1,7 @@
 import 'dart:async';
-import 'dart:io';
-
-import 'package:libserialport/libserialport.dart';
 import 'dart:typed_data';
 import 'dart:convert';
+import 'package:libserialport/libserialport.dart';
 
 import 'write.dart';
 
@@ -45,13 +43,13 @@ class SimReader {
     simSerial.writeMessage(msg);
     String buffer = '';
     return await reader.stream
-        .map((data) => _decodeMsg(data).trim())
+        .map((data) => _decodeMsg(data))
         .takeWhile((response) {
-          buffer += '$response\r\n';
+          buffer += response;
           return !buffer.contains(signal);
         })
         .last
-        .timeout(Duration(seconds: 3), onTimeout: () => '')
-        .then((_) => buffer.isEmpty ? '' : buffer.trim());
+        .timeout(Duration(seconds: 3), onTimeout: () => 'device timeout')
+        .then((_) => buffer.isEmpty ? '' : buffer);
   }
 }

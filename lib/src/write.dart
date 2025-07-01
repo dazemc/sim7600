@@ -2,8 +2,6 @@ import 'package:libserialport/libserialport.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:sim7600/src/comm_imports.dart';
-
 const String comName = '/dev/ttyUSB2';
 
 class SimSerial {
