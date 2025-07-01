@@ -8,14 +8,15 @@ import 'write.dart';
 class SimReader {
   /// Class for reading serial communications
   final SerialPortReader reader;
+  final SimSerial simSerial;
 
   factory SimReader() {
     final simSerial = SimSerial();
     final reader = SerialPortReader(simSerial.port);
-    return SimReader._internal(reader);
+    return SimReader._internal(reader, simSerial);
   }
 
-  SimReader._internal(this.reader);
+  SimReader._internal(this.reader, this.simSerial);
   String _decodeMsg(Uint8List data) {
     return utf8.decode(data, allowMalformed: true);
   }
@@ -35,21 +36,32 @@ class SimReader {
   }
 
   Future<String> writeAndRead({
-    /// Looks for the sent message and the return signal in the serial stream and returns as a string.
     required String msg,
     String signal = '\r\n',
+    Duration timeout = const Duration(seconds: 5),
+    int retries = 3,
   }) async {
-    final simSerial = SimSerial();
-    simSerial.writeMessage(msg);
-    String buffer = '';
-    return await reader.stream
-        .map((data) => _decodeMsg(data))
-        .takeWhile((response) {
-          buffer += response;
-          return !buffer.contains(signal);
-        })
-        .last
-        .timeout(Duration(seconds: 3), onTimeout: () => 'device timeout')
-        .then((_) => buffer.isEmpty ? '' : buffer);
+    for (int attempt = 1; attempt <= retries; attempt++) {
+      try {
+        simSerial.port.flush();
+        simSerial.writeMessage('$msg\r\n');
+        final buffer = StringBuffer();
+        await for (var data in reader.stream.map(_decodeMsg).timeout(timeout)) {
+          buffer.write(data);
+          String content = buffer.toString();
+          if (content.contains(signal)) {
+            return content;
+          }
+        }
+        print('Attempt $attempt: Signal "$signal" not found!');
+      } catch (e) {
+        print('Attempt $attempt error: $e');
+        if (attempt == retries) return '';
+        await Future.delayed(Duration(milliseconds: 500)); // retry
+      } finally {
+        reader.close();
+      }
+    }
+    return '';
   }
 }
