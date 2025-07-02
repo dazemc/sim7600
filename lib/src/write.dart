@@ -12,6 +12,10 @@ class SimSerial {
   factory SimSerial() => _instance;
 
   SimSerial._internal() : port = SerialPort(comName) {
+    _initPort();
+  }
+
+  void _initPort() {
     if (!port.openReadWrite()) {
       throw SerialPortError('Failed to open $comName: ${SerialPort.lastError}');
     }
@@ -20,6 +24,9 @@ class SimSerial {
     config.bits = 8;
     config.parity = SerialPortParity.none;
     config.stopBits = 1;
+    config.rts = SerialPortRts.flowControl;
+    config.cts = SerialPortCts.flowControl;
+    config.xonXoff = SerialPortXonXoff.disabled;
     port.config = config;
     port.flush();
   }
@@ -36,5 +43,19 @@ class SimSerial {
       );
     }
     port.write(_encodeMsg(msg));
+  }
+
+  void resetPort() {
+    if (port.isOpen) {
+      port.close();
+    }
+    _initPort();
+  }
+
+  void dispose() {
+    if (port.isOpen) {
+      port.flush();
+      port.close();
+    }
   }
 }

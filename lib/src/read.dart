@@ -7,30 +7,42 @@ import 'write.dart';
 
 class SimReader {
   /// Class for reading serial communications
+  static final SimReader _instance = SimReader._internal();
   final SerialPortReader reader;
   final SimSerial simSerial;
+  final Stream<Uint8List> _broadcastStream;
+  StreamSubscription? _subscription;
 
-  factory SimReader() {
-    final simSerial = SimSerial();
-    final reader = SerialPortReader(simSerial.port);
-    return SimReader._internal(reader, simSerial);
-  }
+  factory SimReader() => _instance;
 
-  SimReader._internal(this.reader, this.simSerial);
+  SimReader._internal()
+    : simSerial = SimSerial(),
+      reader = SerialPortReader(SimSerial().port),
+      _broadcastStream =
+          SerialPortReader(SimSerial().port).stream.asBroadcastStream();
+
   String _decodeMsg(Uint8List data) {
     return utf8.decode(data, allowMalformed: true);
   }
 
   StreamSubscription listen() {
     /// Stream serial communication
-    return reader.stream.listen((data) {
-      print(_decodeMsg(data));
-    });
+    _subscription?.cancel();
+    _subscription = _broadcastStream.listen(
+      (data) {
+        print(_decodeMsg(data));
+      },
+      onError: (e) => print('Stream error: $e'),
+      onDone: () {
+        print('Stream done.');
+      },
+    );
+    return _subscription!;
   }
 
   Future<String> read({String signal = "\r\n"}) async {
     /// Returns serial communication when signal is found, defaults to carriage return if no value is given
-    return await reader.stream
+    return await _broadcastStream
         .map((data) => _decodeMsg(data))
         .firstWhere((msg) => msg.contains(signal), orElse: () => '');
   }
@@ -43,14 +55,17 @@ class SimReader {
   }) async {
     for (int attempt = 1; attempt <= retries; attempt++) {
       try {
-        simSerial.port.flush();
         simSerial.writeMessage('$msg\r\n');
         final buffer = StringBuffer();
-        await for (var data in reader.stream.map(_decodeMsg).timeout(timeout)) {
+        await for (var data in _broadcastStream
+            .map(_decodeMsg)
+            .timeout(timeout)) {
           buffer.write(data);
           String content = buffer.toString();
           if (content.contains(signal)) {
             return content;
+          } else if (content.toLowerCase().contains('error')) {
+            throw SerialPortError('Error sending $msg ${SerialPort.lastError}');
           }
         }
         print('Attempt $attempt: Signal "$signal" not found!');
@@ -58,8 +73,6 @@ class SimReader {
         print('Attempt $attempt error: $e');
         if (attempt == retries) return '';
         await Future.delayed(Duration(milliseconds: 500)); // retry
-      } finally {
-        reader.close();
       }
     }
     return '';

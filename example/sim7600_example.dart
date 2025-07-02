@@ -17,7 +17,10 @@ void main() async {
   // final simReader = SimReader();
   // print(await simReader.read(signal: 'OK'));
   // Configuration
-  final simStatus = await SimStatus.create();
+  SimStatus simStatus = await SimStatus.create();
   print(simStatus.cellNumber);
+  print(simStatus.cellFunction.value);
+  await simStatus.cellFunction.setMode(1);
+  print(simStatus.cellFunction.value);
   exit(0);
 }
