@@ -19,4 +19,5 @@ void main() async {
   // Configuration
   final simStatus = await SimStatus.create();
   print(simStatus.cellNumber);
+  exit(0);
 }
